@@ -177,9 +177,13 @@ title: "**Upcoming Assignments**"
 $markdown_table = New-MarkdownTable
 Save-MarkdownTable -path $markdown_path -header $markdown_header -table $markdown_table
 
-
-# convert markdown to a pdf
-pandoc -f gfm -t pdf -s -o upcoming_assignments.pdf upcoming_assignments.md -V geometry:margin=1in -V text-align:center
+function Convert-ToPDF {
+    param (
+        [String]$inputFile,
+        [String]$outputFile
+    )
+    pandoc -f gfm -t pdf -s -o $outputFile $inputFile -V geometry:margin=1in -V text-align:center
+}
 
 function Send-Email {
     $credentials = New-Object Management.Automation.PSCredential $From, ($SMTPPassword | ConvertTo-SecureString -AsPlainText -Force)
@@ -188,6 +192,7 @@ function Send-Email {
     -Attachments $Attachment -Credential $credentials
 }
 # Send the email with the PDF attachment
+Convert-ToPDF -input $markdown_path -output $Attachment
 Send-Email
 if ($Cleanup) {
     cleanup
