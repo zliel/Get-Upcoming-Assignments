@@ -22,6 +22,7 @@ jobs:
                 $results = Invoke-ScriptAnalyzer -Path . -Recurse -Severity Error -ErrorAction SilentlyContinue
                 if ($results.Count -gt 0) {
                     Write-Host "PSScriptAnalyzer found errors:"
+                    $results | ForEach-Object { Write-Host $_ }
                     exit 1
                 } else {
                     Write-Host "PSScriptAnalyzer found no errors."
