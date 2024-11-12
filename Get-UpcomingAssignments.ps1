@@ -84,22 +84,7 @@ function Get-Assignments {
     }
 }
 
-# Fetch all course data
-$all_courses = Get-CourseData
 
-$upcoming_assignments = [System.Collections.Hashtable]@{}
-# Loop through each course and get the upcoming assignments
-$all_courses | ForEach-Object {
-    $course_id = $_.id
-    $course_name = $_.name
-    $course_num = $course_name -split "-" | Select-Object -First 1
-    $short_course_name = ($course_name -split ":" | Select-Object -Last 1).Trim()
-    $course_name = "$course_num - $short_course_name"
-
-    $assignments = Get-Assignments -course_id $course_id
-
-    $upcoming_assignments[$course_name] = @($assignments)
-}
 
 # Print the upcoming assignments in a table
 function Show-Table {
@@ -128,7 +113,7 @@ function Show-Table {
     Write-Host "Total Assignments: $($table.Count)"
 }
 
-Show-Table -data $upcoming_assignments
+
 
 
 function New-MarkdownTable {
@@ -160,6 +145,26 @@ function Save-MarkdownTable {
     # Add the markdown table to the file
     $table | Out-File -FilePath $path -Append
 }
+
+
+# Fetch all course data
+$all_courses = Get-CourseData
+
+$upcoming_assignments = [System.Collections.Hashtable]@{}
+# Loop through each course and get the upcoming assignments
+$all_courses | ForEach-Object {
+    $course_id = $_.id
+    $course_name = $_.name
+    $course_num = $course_name -split "-" | Select-Object -First 1
+    $short_course_name = ($course_name -split ":" | Select-Object -Last 1).Trim()
+    $course_name = "$course_num - $short_course_name"
+
+    $assignments = Get-Assignments -course_id $course_id
+
+    $upcoming_assignments[$course_name] = @($assignments)
+}
+
+Show-Table -data $upcoming_assignments
 
 # Save the markdown table to a file with a header
 $markdown_path = "upcoming_assignments.md"
