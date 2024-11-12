@@ -27,10 +27,12 @@ $SMTPServer = $config.SMTPServer
 $SMTPPort = $config.SMTPPort
 $SMTPPassword = $config.SMTPPassword
 
+
 function cleanup {
     Remove-Item "upcoming_assignments.md"
     Remove-Item $Attachment
 }
+
 
 function Get-CourseData {
     try {
@@ -85,8 +87,6 @@ function Get-Assignments {
 }
 
 
-
-# Print the upcoming assignments in a table
 function Show-Table {
     param (
         [System.Collections.Hashtable]$data
@@ -114,8 +114,6 @@ function Show-Table {
 }
 
 
-
-
 function New-MarkdownTable {
     param (
         [System.Collections.Hashtable]$upcoming_assignments
@@ -138,15 +136,23 @@ function New-MarkdownTable {
 
 function Save-MarkdownTable {
     param (
-        [String]$path,
-        [String]$header,
-        [String[]]$table
+        [System.Collections.Hashtable]$upcoming_assignments
     )
 
+    $markdown_path = "upcoming_assignments.md"
+    $markdown_header = @"
+---
+title: "**Upcoming Assignments**"
+---
+"@
+
+    $markdown_table = New-MarkdownTable -upcoming_assignments $upcoming_assignments
+    Show-Table -data $upcoming_assignments
+
     # Add the header to a markdown file
-    $header | Out-File -FilePath $path
+    $markdown_header | Out-File -FilePath $markdown_path
     # Add the markdown table to the file
-    $table | Out-File -FilePath $path -Append
+    $markdown_table | Out-File -FilePath $markdown_path -Append
 }
 
 
@@ -170,19 +176,6 @@ function Get-AssignmentData {
     return $upcoming_assignments
 }
 
-# Save the markdown table to a file with a header
-$markdown_path = "upcoming_assignments.md"
-$markdown_header = @"
----
-title: "**Upcoming Assignments**"
----
-"@
-
-
-$upcoming_assignments = Get-AssignmentData
-$markdown_table = New-MarkdownTable -upcoming_assignments $upcoming_assignments
-Show-Table -data $upcoming_assignments
-Save-MarkdownTable -path $markdown_path -header $markdown_header -table $markdown_table
 
 function Convert-ToPDF {
     param (
@@ -192,15 +185,24 @@ function Convert-ToPDF {
     pandoc -f gfm -t pdf -s -o $outputFile $inputFile -V geometry:margin=1in -V text-align:center
 }
 
+
 function Send-Email {
     $credentials = New-Object Management.Automation.PSCredential $From, ($SMTPPassword | ConvertTo-SecureString -AsPlainText -Force)
     Send-MailMessage -From $From -to $To -Subject $Subject `
     -Body $Body -SmtpServer $SMTPServer -port $SMTPPort -UseSsl `
     -Attachments $Attachment -Credential $credentials
 }
-# Send the email with the PDF attachment
-Convert-ToPDF -input $markdown_path -output $Attachment
-Send-Email
-if ($Cleanup) {
-    cleanup
+
+
+function Main {
+    $upcoming_assignments = Get-AssignmentData
+    Save-MarkdownTable -upcoming_assignments $upcoming_assignments
+    Convert-ToPDF -inputFile "upcoming_assignments.md" -outputFile $Attachment
+    Send-Email
+    if ($Cleanup) {
+        cleanup
+    }
 }
+
+
+Main
