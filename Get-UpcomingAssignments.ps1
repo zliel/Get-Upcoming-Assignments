@@ -5,6 +5,7 @@ $access_token = 'YOUR_ACCESS_TOKEN_HERE'
 $base_uri = "https://canvas.instructure.com/api/v1"
 $courses_uri = "$base_uri/courses?enrollment_state=active&include=[concluded]"
 $today = Get-Date
+$semester_start = Get-Date -Date "YYYY-MM-DD"
 $headers = @{ Authorization = "Bearer $access_token" }
 
 # Variables for sending email
@@ -24,7 +25,7 @@ function Get-CourseData {
         $course_list = Invoke-RestMethod -Uri $courses_uri -Headers $headers -ContentType "application/json"
         
         # Filter out courses that were created after May 1, 2024
-        $course_list = $course_list | Where-Object { $_.created_at -gt (Get-Date -Date "2024-5-1")}
+        $course_list = $course_list | Where-Object { $_.created_at -gt ($semester_start)}
     
         # Select only the fields we want to display
         $course_list = $course_list | Select-Object id, name, created_at, end_at
