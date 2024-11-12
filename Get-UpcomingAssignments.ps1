@@ -27,10 +27,12 @@ $SMTPServer = $config.SMTPServer
 $SMTPPort = $config.SMTPPort
 $SMTPPassword = $config.SMTPPassword
 
+
 function cleanup {
     Remove-Item "upcoming_assignments.md"
     Remove-Item $Attachment
 }
+
 
 function Get-CourseData {
     try {
@@ -84,24 +86,7 @@ function Get-Assignments {
     }
 }
 
-# Fetch all course data
-$all_courses = Get-CourseData
 
-$upcoming_assignments = [System.Collections.Hashtable]@{}
-# Loop through each course and get the upcoming assignments
-$all_courses | ForEach-Object {
-    $course_id = $_.id
-    $course_name = $_.name
-    $course_num = $course_name -split "-" | Select-Object -First 1
-    $short_course_name = ($course_name -split ":" | Select-Object -Last 1).Trim()
-    $course_name = "$course_num - $short_course_name"
-
-    $assignments = Get-Assignments -course_id $course_id
-
-    $upcoming_assignments[$course_name] = @($assignments)
-}
-
-# Print the upcoming assignments in a table
 function Show-Table {
     param (
         [System.Collections.Hashtable]$data
@@ -128,10 +113,11 @@ function Show-Table {
     Write-Host "Total Assignments: $($table.Count)"
 }
 
-Show-Table -data $upcoming_assignments
-
 
 function New-MarkdownTable {
+    param (
+        [System.Collections.Hashtable]$upcoming_assignments
+    )
     
     $markdown_table = @()
     $markdown_table += "| Course Name | Assignment Name | Due Date |"
@@ -150,38 +136,73 @@ function New-MarkdownTable {
 
 function Save-MarkdownTable {
     param (
-        [String]$path,
-        [String]$header,
-        [String[]]$table
+        [System.Collections.Hashtable]$upcoming_assignments
     )
 
-    # Add the header to a markdown file
-    $header | Out-File -FilePath $path
-    # Add the markdown table to the file
-    $table | Out-File -FilePath $path -Append
-}
-
-# Save the markdown table to a file with a header
-$markdown_path = "upcoming_assignments.md"
-$markdown_header = @"
+    $markdown_path = "upcoming_assignments.md"
+    $markdown_header = @"
 ---
 title: "**Upcoming Assignments**"
 ---
 "@
 
-$markdown_table = New-MarkdownTable
-Save-MarkdownTable -path $markdown_path -header $markdown_header -table $markdown_table
+    $markdown_table = New-MarkdownTable -upcoming_assignments $upcoming_assignments
+    Show-Table -data $upcoming_assignments
 
-
-# convert markdown to a pdf
-pandoc -f gfm -t pdf -s -o upcoming_assignments.pdf upcoming_assignments.md -V geometry:margin=1in -V text-align:center
-
-# Send the email with the PDF attachment
-$credentials = New-Object Management.Automation.PSCredential $From, ($SMTPPassword | ConvertTo-SecureString -AsPlainText -Force)
-Send-MailMessage -From $From -to $To -Subject $Subject `
--Body $Body -SmtpServer $SMTPServer -port $SMTPPort -UseSsl `
--Attachments $Attachment -Credential $credentials
-
-if ($Cleanup) {
-    cleanup
+    # Add the header to a markdown file
+    $markdown_header | Out-File -FilePath $markdown_path
+    # Add the markdown table to the file
+    $markdown_table | Out-File -FilePath $markdown_path -Append
 }
+
+
+function Get-AssignmentData {
+    $all_courses = Get-CourseData
+
+    $upcoming_assignments = [System.Collections.Hashtable]@{}
+    # Loop through each course and get the upcoming assignments
+    $all_courses | ForEach-Object {
+        $course_id = $_.id
+        $course_name = $_.name
+        $course_num = $course_name -split "-" | Select-Object -First 1
+        $short_course_name = ($course_name -split ":" | Select-Object -Last 1).Trim()
+        $course_name = "$course_num - $short_course_name"
+
+        $assignments = Get-Assignments -course_id $course_id
+
+        $upcoming_assignments[$course_name] = @($assignments)
+    }
+
+    return $upcoming_assignments
+}
+
+
+function Convert-ToPDF {
+    param (
+        [String]$inputFile,
+        [String]$outputFile
+    )
+    pandoc -f gfm -t pdf -s -o $outputFile $inputFile -V geometry:margin=1in -V text-align:center
+}
+
+
+function Send-Email {
+    $credentials = New-Object Management.Automation.PSCredential $From, ($SMTPPassword | ConvertTo-SecureString -AsPlainText -Force)
+    Send-MailMessage -From $From -to $To -Subject $Subject `
+    -Body $Body -SmtpServer $SMTPServer -port $SMTPPort -UseSsl `
+    -Attachments $Attachment -Credential $credentials
+}
+
+
+function Main {
+    $upcoming_assignments = Get-AssignmentData
+    Save-MarkdownTable -upcoming_assignments $upcoming_assignments
+    Convert-ToPDF -inputFile "upcoming_assignments.md" -outputFile $Attachment
+    Send-Email
+    if ($Cleanup) {
+        cleanup
+    }
+}
+
+
+Main
