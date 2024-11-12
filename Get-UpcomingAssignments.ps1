@@ -27,6 +27,10 @@ $SMTPServer = $config.SMTPServer
 $SMTPPort = $config.SMTPPort
 $SMTPPassword = $config.SMTPPassword
 
+function cleanup {
+    Remove-Item "upcoming_assignments.md"
+    Remove-Item $Attachment
+}
 
 function Get-CourseData {
     try {
@@ -177,3 +181,7 @@ $credentials = New-Object Management.Automation.PSCredential $From, ($SMTPPasswo
 Send-MailMessage -From $From -to $To -Subject $Subject `
 -Body $Body -SmtpServer $SMTPServer -port $SMTPPort -UseSsl `
 -Attachments $Attachment -Credential $credentials
+
+if ($Cleanup) {
+    cleanup
+}
