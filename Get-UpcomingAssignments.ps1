@@ -181,12 +181,14 @@ Save-MarkdownTable -path $markdown_path -header $markdown_header -table $markdow
 # convert markdown to a pdf
 pandoc -f gfm -t pdf -s -o upcoming_assignments.pdf upcoming_assignments.md -V geometry:margin=1in -V text-align:center
 
+function Send-Email {
+    $credentials = New-Object Management.Automation.PSCredential $From, ($SMTPPassword | ConvertTo-SecureString -AsPlainText -Force)
+    Send-MailMessage -From $From -to $To -Subject $Subject `
+    -Body $Body -SmtpServer $SMTPServer -port $SMTPPort -UseSsl `
+    -Attachments $Attachment -Credential $credentials
+}
 # Send the email with the PDF attachment
-$credentials = New-Object Management.Automation.PSCredential $From, ($SMTPPassword | ConvertTo-SecureString -AsPlainText -Force)
-Send-MailMessage -From $From -to $To -Subject $Subject `
--Body $Body -SmtpServer $SMTPServer -port $SMTPPort -UseSsl `
--Attachments $Attachment -Credential $credentials
-
+Send-Email
 if ($Cleanup) {
     cleanup
 }
