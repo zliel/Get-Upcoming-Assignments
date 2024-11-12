@@ -1,5 +1,11 @@
 # Description: This script retrieves upcoming assignments from Canvas LMS and sends an email with the assignments as a PDF attachment.
 
+#Cleanup parameter to remove the markdown and pdf files after sending the email.
+param (
+    [Alias("c")]
+    [switch]$Cleanup = $false
+)
+
 # Load configuration from config.json
 $config = Get-Content -Raw -Path "config.json" | ConvertFrom-Json
 
@@ -21,6 +27,10 @@ $SMTPServer = $config.SMTPServer
 $SMTPPort = $config.SMTPPort
 $SMTPPassword = $config.SMTPPassword
 
+function cleanup {
+    Remove-Item "upcoming_assignments.md"
+    Remove-Item $Attachment
+}
 
 function Get-CourseData {
     try {
@@ -171,3 +181,7 @@ $credentials = New-Object Management.Automation.PSCredential $From, ($SMTPPasswo
 Send-MailMessage -From $From -to $To -Subject $Subject `
 -Body $Body -SmtpServer $SMTPServer -port $SMTPPort -UseSsl `
 -Attachments $Attachment -Credential $credentials
+
+if ($Cleanup) {
+    cleanup
+}
