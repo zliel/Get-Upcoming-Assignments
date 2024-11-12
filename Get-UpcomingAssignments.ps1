@@ -117,6 +117,9 @@ function Show-Table {
 
 
 function New-MarkdownTable {
+    param (
+        [System.Collections.Hashtable]$upcoming_assignments
+    )
     
     $markdown_table = @()
     $markdown_table += "| Course Name | Assignment Name | Due Date |"
@@ -147,24 +150,25 @@ function Save-MarkdownTable {
 }
 
 
-# Fetch all course data
-$all_courses = Get-CourseData
+function Get-AssignmentData {
+    $all_courses = Get-CourseData
 
-$upcoming_assignments = [System.Collections.Hashtable]@{}
-# Loop through each course and get the upcoming assignments
-$all_courses | ForEach-Object {
-    $course_id = $_.id
-    $course_name = $_.name
-    $course_num = $course_name -split "-" | Select-Object -First 1
-    $short_course_name = ($course_name -split ":" | Select-Object -Last 1).Trim()
-    $course_name = "$course_num - $short_course_name"
+    $upcoming_assignments = [System.Collections.Hashtable]@{}
+    # Loop through each course and get the upcoming assignments
+    $all_courses | ForEach-Object {
+        $course_id = $_.id
+        $course_name = $_.name
+        $course_num = $course_name -split "-" | Select-Object -First 1
+        $short_course_name = ($course_name -split ":" | Select-Object -Last 1).Trim()
+        $course_name = "$course_num - $short_course_name"
 
-    $assignments = Get-Assignments -course_id $course_id
+        $assignments = Get-Assignments -course_id $course_id
 
-    $upcoming_assignments[$course_name] = @($assignments)
+        $upcoming_assignments[$course_name] = @($assignments)
+    }
+
+    return $upcoming_assignments
 }
-
-Show-Table -data $upcoming_assignments
 
 # Save the markdown table to a file with a header
 $markdown_path = "upcoming_assignments.md"
@@ -174,7 +178,10 @@ title: "**Upcoming Assignments**"
 ---
 "@
 
-$markdown_table = New-MarkdownTable
+
+$upcoming_assignments = Get-AssignmentData
+$markdown_table = New-MarkdownTable -upcoming_assignments $upcoming_assignments
+Show-Table -data $upcoming_assignments
 Save-MarkdownTable -path $markdown_path -header $markdown_header -table $markdown_table
 
 function Convert-ToPDF {
