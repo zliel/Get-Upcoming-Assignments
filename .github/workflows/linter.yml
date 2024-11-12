@@ -1,0 +1,19 @@
+name: Run PowerShell Linter
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+    lint:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v2
+
+            - name: Install Dependencies
+              run: Install-Module -Name PSScriptAnalyzer -Force -AllowClobber
+
+            # Prep for future modules or files
+            - name: Run PSScriptAnalyzer
+              run: Invoke-ScriptAnalyzer -Path . -Recurse -ExcludePath .github -Severity Error -ErrorAction Stop
