@@ -12,8 +12,10 @@ jobs:
             - uses: actions/checkout@v2
 
             - name: Install Dependencies
+              shell: pwsh
               run: Install-Module -Name PSScriptAnalyzer -Force -AllowClobber
 
             # Prep for future modules or files
             - name: Run PSScriptAnalyzer
+              shell: pwsh
               run: Invoke-ScriptAnalyzer -Path . -Recurse -ExcludePath .github -Severity Error -ErrorAction Stop
