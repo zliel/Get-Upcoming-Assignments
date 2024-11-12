@@ -2,6 +2,7 @@
 
 #Cleanup parameter to remove the markdown and pdf files after sending the email.
 param (
+    [Alias("c")]
     [switch]$Cleanup = $false
 )
 
