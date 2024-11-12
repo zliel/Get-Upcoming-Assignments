@@ -1,5 +1,10 @@
 # Description: This script retrieves upcoming assignments from Canvas LMS and sends an email with the assignments as a PDF attachment.
 
+#Cleanup parameter to remove the markdown and pdf files after sending the email.
+param (
+    [switch]$Cleanup = $false
+)
+
 # Load configuration from config.json
 $config = Get-Content -Raw -Path "config.json" | ConvertFrom-Json
 
