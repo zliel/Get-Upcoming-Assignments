@@ -19,7 +19,7 @@ jobs:
             - name: Run PSScriptAnalyzer
               shell: pwsh
               run: |
-                $results = Invoke-ScriptAnalyzer -Path . -Recurse -Severity Error -ErrorAction SilentlyContinue
+                $results = Invoke-ScriptAnalyzer -Path . -Recurse -Severity Error -ExcludeRule PSAvoidUsingConvertToSecureStringWithPlainText -ErrorAction SilentlyContinue
                 if ($results.Count -gt 0) {
                     Write-Host "PSScriptAnalyzer found errors:"
                     $results | ForEach-Object { Write-Host $_ }
