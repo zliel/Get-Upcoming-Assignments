@@ -1,22 +1,25 @@
 # Description: This script retrieves upcoming assignments from Canvas LMS and sends an email with the assignments as a PDF attachment.
 
+# Load configuration from config.json
+$config = Get-Content -Raw -Path "config.json" | ConvertFrom-Json
+
 # Variables for retrieving assignments from the Canvas API
-$access_token = 'YOUR_ACCESS_TOKEN_HERE'
+$access_token = $config.access_token
 $base_uri = "https://canvas.instructure.com/api/v1"
 $courses_uri = "$base_uri/courses?enrollment_state=active&include=[concluded]"
 $today = Get-Date
-$semester_start = Get-Date -Date "YYYY-MM-DD"
+$semester_start = Get-Date -Date $config.semester_start
 $headers = @{ Authorization = "Bearer $access_token" }
 
 # Variables for sending email
-$From = "YOUR_EMAIL_HERE"
-$To = "RECIPIENT_EMAIL_HERE"
-$Attachment = "C:\Scripts\upcoming_assignments.pdf"
-$Subject = "Assignments for the week of $($today.ToString("MM-dd-yyyy"))"
-$Body = "Here's your next week's assignments!"
-$SMTPServer = "YOUR_SMTP_SERVER_HERE"
-$SMTPPort = "YOUR_SMTP_PORT_HERE"
-$SMTPPassword = "YOUR_SMTP_PASSWORD_HERE"
+$From = $config.From
+$To = $config.To
+$Attachment = $config.Attachment
+$Subject = "Assignments for the week of $($today.ToString('MM-dd-yyyy'))"
+$Body = $config.Body
+$SMTPServer = $config.SMTPServer
+$SMTPPort = $config.SMTPPort
+$SMTPPassword = $config.SMTPPassword
 
 
 function Get-CourseData {

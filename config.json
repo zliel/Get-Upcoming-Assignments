@@ -1,0 +1,12 @@
+{
+    "access_token": "YOUR_ACCESS_TOKEN_HERE",
+    "semester_start": "YYYY-MM-DD",
+
+    "From": "YOUR_EMAIL_HERE",
+    "To": "RECIPIENT_EMAIL_HERE",
+    "Attachment": "YOUR_OUTPUT_PDF_FILENAME_HERE",
+    "Body": "Here's your next week's assignments!",
+    "SMTPServer": "YOUR_SMTP_SERVER_HERE",
+    "SMTPPort": "YOUR_SMTP_PORT_HERE",
+    "SMTPPassword": "YOUR_SMTP_PASSWORD_HERE"
+}
