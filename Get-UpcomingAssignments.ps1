@@ -27,6 +27,16 @@ $SMTPServer = $config.SMTPServer
 $SMTPPort = $config.SMTPPort
 $SMTPPassword = $config.SMTPPassword
 
+function Write-Log {
+    param (
+        [string]$message,
+        [string] $context
+    )
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    $log_message = "[$timestamp] From: $context - $message"
+    
+    Write-Host $log_message
+}
 
 function cleanup {
     Remove-Item "upcoming_assignments.md"
@@ -35,6 +45,7 @@ function cleanup {
 
 
 function Get-CourseData {
+    Write-Log "Retrieving course data" "Get-CourseData"
     try {
         # Retrieve the list of courses
         $course_list = Invoke-RestMethod -Uri $courses_uri -Headers $headers -ContentType "application/json"
@@ -45,6 +56,7 @@ function Get-CourseData {
         # Select only the fields we want to display
         $course_list = $course_list | Select-Object id, name, created_at, end_at
         return $course_list
+
     } catch {
         Write-Host "Error retrieving courses:"
         Write-Host $_.Exception.Message
