@@ -3,7 +3,9 @@
 #Cleanup parameter to remove the markdown and pdf files after sending the email.
 param (
     [Alias("c")]
-    [switch]$Cleanup = $false
+    [switch]$Cleanup = $false,
+    [Alias("q")]
+    [switch]$Quiet = $false
 )
 
 # Load configuration from config.json
@@ -32,6 +34,11 @@ function Write-Log {
         [string]$message,
         [string] $context
     )
+
+    if ($Quiet) {
+        return
+    }
+
     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
     $log_message = "[$timestamp] From: $context - $message"
     
@@ -39,8 +46,10 @@ function Write-Log {
 }
 
 function cleanup {
+    Write-Log "Cleaning up files" "cleanup"
     Remove-Item "upcoming_assignments.md"
     Remove-Item $Attachment
+    Write-Log "Cleanup complete" "cleanup"
 }
 
 
@@ -58,11 +67,11 @@ function Get-CourseData {
         return $course_list
 
     } catch {
-        Write-Host "Error retrieving courses:"
-        Write-Host $_.Exception.Message
+        Write-Log "Error retrieving course data" "Get-CourseData"
+        Write-Log "$_.Exception.Message" "Get-CourseData"
         if ($null -ne $_.Exception.Response) {
             $responseBody = $_.Exception.Response.Content.ReadAsStringAsync().Result
-            Write-Host "Response Body: $responseBody"
+            Write-Log "Response Body: $responseBody" "Get-CourseData"
         }
     }
 }
@@ -72,7 +81,7 @@ function Get-Assignments {
         [String]$course_id
     )
     $assignments_uri = "$base_uri/courses/$course_id/assignments?include=submission&bucket=unsubmitted"
-    # Write-Host "Requesting assignments from: $assignments_uri"
+    Write-Log "Retrieving assignments for course $course_id" "Get-Assignments"
     try {
         $assignments = Invoke-RestMethod -Uri $assignments_uri -Headers $headers -ContentType "application/json"
         
@@ -89,11 +98,11 @@ function Get-Assignments {
         $assignments_due_soon = $assignments_due_soon | Select-Object id, name, due_at, submission
         return $assignments_due_soon
     } catch {
-        Write-Host "Error retrieving assignments:"
-        Write-Host $_.Exception.Message
+        Write-Log "Error retrieving assignments:" "Get-Assignments"
+        Write-Log "$_.Exception.Message" "Get-Assignments"
         if ($null -ne $_.Exception.Response) {
             $responseBody = $_.Exception.Response.Content.ReadAsStringAsync().Result
-            Write-Host "Response Body: $responseBody"
+            Write-Log "Response Body: $responseBody" "Get-Assignments"
         }
     }
 }
@@ -107,6 +116,7 @@ function Show-Table {
     $table = @()
 
     # Loop through each course and assignment and add it to the table
+    Write-Log "Displaying table" "Show-Table"
     $data.GetEnumerator() | ForEach-Object {
         $course_name = $_.Key
         $assignments = $_.Value
@@ -122,7 +132,7 @@ function Show-Table {
     # Sort the table by due date and display it
     $table | Sort-Object "Due Date" | Format-Table -AutoSize
 
-    Write-Host "Total Assignments: $($table.Count)"
+    Write-Log "Total Assignments: $($table.Count)" "Show-Table"
 }
 
 
@@ -131,6 +141,7 @@ function New-MarkdownTable {
         [System.Collections.Hashtable]$upcoming_assignments
     )
     
+    Write-Log "Creating markdown table" "New-MarkdownTable"
     $markdown_table = @()
     $markdown_table += "| Course Name | Assignment Name | Due Date |"
     $markdown_table += "|:--|:--|--:|"
@@ -141,6 +152,8 @@ function New-MarkdownTable {
             $markdown_table += "| $course_name | $($_.name) | $($_.due_at.ToString("MM-dd-yyyy")) |"
         }
     }
+
+    Write-Log "Markdown table created" "New-MarkdownTable"
 
     return $markdown_table
 }
@@ -161,10 +174,12 @@ title: "**Upcoming Assignments**"
     $markdown_table = New-MarkdownTable -upcoming_assignments $upcoming_assignments
     Show-Table -data $upcoming_assignments
 
+    Write-Log "Saving markdown table to $markdown_path" "Save-MarkdownTable"
     # Add the header to a markdown file
     $markdown_header | Out-File -FilePath $markdown_path
     # Add the markdown table to the file
     $markdown_table | Out-File -FilePath $markdown_path -Append
+    Write-Log "Markdown table saved to $markdown_path" "Save-MarkdownTable"
 }
 
 
@@ -173,6 +188,7 @@ function Get-AssignmentData {
 
     $upcoming_assignments = [System.Collections.Hashtable]@{}
     # Loop through each course and get the upcoming assignments
+    Write-Log "Extracting data for upcoming assignments" "Get-AssignmentData"
     $all_courses | ForEach-Object {
         $course_id = $_.id
         $course_name = $_.name
@@ -184,6 +200,7 @@ function Get-AssignmentData {
 
         $upcoming_assignments[$course_name] = @($assignments)
     }
+    Write-Log "Data extracted for upcoming assignments" "Get-AssignmentData"
 
     return $upcoming_assignments
 }
@@ -194,15 +211,19 @@ function Convert-ToPDF {
         [String]$inputFile,
         [String]$outputFile
     )
+    Write-Log "Converting markdown to PDF" "Convert-ToPDF"
     pandoc -f gfm -t pdf -s -o $outputFile $inputFile -V geometry:margin=1in -V text-align:center
+    Write-Log "PDF file created: $outputFile" "Convert-ToPDF"
 }
 
 
 function Send-Email {
+    Write-Log "Sending email" "Send-Email"
     $credentials = New-Object Management.Automation.PSCredential $From, ($SMTPPassword | ConvertTo-SecureString -AsPlainText -Force)
     Send-MailMessage -From $From -to $To -Subject $Subject `
     -Body $Body -SmtpServer $SMTPServer -port $SMTPPort -UseSsl `
     -Attachments $Attachment -Credential $credentials
+    Write-Log "Email sent" "Send-Email"
 }
 
 
